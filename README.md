@@ -27,6 +27,13 @@
 文件结构
 
 ```bash
+sudo apt install ros-`rosversion -d`-joint-state-publisher-gui ros-`rosversion -d`-joint-state-controller ros-`rosversion -d`-controller-manager ros-`rosversion -d`-gazebo-ros-pkgs ros-`rosversion -d`-gazebo-ros-control ros-`rosversion -d`-velocity-controllers ros-`rosversion -d`-map-server
+sudo apt install xterm
+```
+
+
+
+```bash
 src
 ├── course_agv_control
 │   ├── CMakeLists.txt
@@ -86,3 +93,4 @@ src
 
 ```
 
+![output](image/2.png)
