@@ -10,8 +10,8 @@ from std_msgs.msg import Bool
 import numpy as np
 import matplotlib.pyplot as plt
 
-from a_star import AStarPlanner as Planner
-# from rrt import RRT as Planner
+# from a_star import AStarPlanner as Planner
+from rrt import RRT as Planner
 
 ROBOT_TF_NAME = "/robot_base" # "/robot_base"
 MAP_TOPIC_NAME = "/map" # "/map"
