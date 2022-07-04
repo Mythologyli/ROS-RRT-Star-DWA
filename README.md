@@ -40,16 +40,11 @@ src
 │   ├── CMakeLists.txt
 │   ├── config
 │   │   └── course_agv_control.yaml
-│   ├── launch
-│   │   └── course_agv_control.launch
 │   ├── package.xml
 │   └── scripts
 │       └── kinematics.py # 运动学分解，TODO
 ├── course_agv_description
 │   ├── CMakeLists.txt
-│   ├── launch
-│   │   ├── course_agv.rviz
-│   │   └── course_agv_rviz.launch
 │   ├── package.xml
 │   └── urdf
 │       ├── course_agv.gazebo
@@ -63,8 +58,8 @@ src
 │   │   └── map.yaml
 │   ├── launch
 │   │   ├── course_agv.rviz
-│   │   ├── course_agv_world.launch
-│   │   └── course_agv_world_rviz.launch
+│   │   ├── course_agv_world.launch # 可以用于测试环境
+│   │   └── course_agv_world_rviz.launch
 │   ├── models
 │   │   └── ground_plane_for_agv
 │   │       ├── map # 用于gazebo的地图文件
