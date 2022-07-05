@@ -11,7 +11,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # from a_star import AStarPlanner as Planner
-from rrt import RRT as Planner
+# from rrt import RRT as Planner
+# from rrt_simplified import RRTSimplified as Planner
+# from rrt_star import RRTStar as Planner
+from rrt_star_simplified import RRTStarSimplified as Planner
 
 ROBOT_TF_NAME = "/robot_base" # "/robot_base"
 MAP_TOPIC_NAME = "/map" # "/map"
