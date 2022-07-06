@@ -21,8 +21,11 @@ class Kinematics:
         self.left_wheel_vel,self.right_wheel_vel = self.kinematics(vx,vw)
 
     def kinematics(self,vx,vw):
-        ##TODO
-        return 0,0
+        radius = 0.08
+        l = 0.1
+        w1 = vx / radius - l * vw / radius
+        w2 = vx / radius + l * vw / radius
+        return -w2, -w1
 
     def publish(self):
         self.vel_left_pub.publish(self.left_wheel_vel)
