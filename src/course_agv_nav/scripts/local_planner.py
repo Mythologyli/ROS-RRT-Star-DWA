@@ -37,7 +37,8 @@ class LocalPlanner:
         self.plan_config.robot_type = dwa.RobotType.rectangle
         self.dwa = dwa.DWA(self.plan_config)
         c = self.plan_config
-        self.threshold = 1.5*c.max_speed*c.predict_time
+        # self.threshold = 1.5*c.max_speed*c.predict_time
+        self.threshold = 0.6
 
         self.path = Path()
         self.tf = tf.TransformListener()
@@ -49,7 +50,7 @@ class LocalPlanner:
         self.ob = None
 
         self.need_exit = False
-        pass
+
     def updateGlobalPose(self):
         try:
             self.tf.waitForTransform("/map", ROBOT_TF_NAME, rospy.Time(), rospy.Duration(4.0))
@@ -62,18 +63,23 @@ class LocalPlanner:
         self.y = self.trans[1]
         self.yaw = yaw
         ind = self.goal_index
-        self.goal_index = len(self.path.poses)-1
         while ind < len(self.path.poses):
             p = self.path.poses[ind].pose.position
             dis = math.hypot(p.x-self.x,p.y-self.y)
             # print('mdgb;; ',len(self.path.poses),ind,dis)
             if dis < self.threshold:
-                self.goal_index = ind
+                self.goal_index = ind + 1
             ind += 1
+
+        if self.goal_index >= len(self.path.poses):
+            self.goal_index = len(self.path.poses) - 1
+
         goal = self.path.poses[self.goal_index]
         self.midpose_pub.publish(goal)
         lgoal = self.tf.transformPose(ROBOT_TF_NAME, goal)
         self.plan_goal = np.array([lgoal.pose.position.x,lgoal.pose.position.y])
+        print("current",self.x,self.y)
+        print("path",self.path.poses[-1].pose.position.x,self.path.poses[-1].pose.position.y)
         self.goal_dis = math.hypot(self.x-self.path.poses[-1].pose.position.x,self.y-self.path.poses[-1].pose.position.y)
 
     def laserCallback(self,msg):
@@ -89,13 +95,13 @@ class LocalPlanner:
             if r < self.threshold:
                 self.ob.append([math.cos(a)*r,math.sin(a)*r])
         self.laser_lock.release()
-        pass
+    
     def updateObstacle(self):
         self.laser_lock.acquire()
         self.plan_ob = []
         self.plan_ob = np.array(self.ob) if self.ob is not None else None
         self.laser_lock.release()
-        pass
+    
     def pathCallback(self,msg):
         self.need_exit = True
         time.sleep(0.1)
@@ -105,7 +111,7 @@ class LocalPlanner:
         self.planner_thread.start()
 
     def initPlanning(self):
-        self.goal_index = 0
+        self.goal_index = 1
         # self.vx = 0.0
         # self.vw = 0.0
         self.dis = 99999
@@ -119,7 +125,7 @@ class LocalPlanner:
         self.plan_cx,self.plan_cy = np.array(cx),np.array(cy)
         self.plan_goal = np.array([cx[-1],cy[-1]])
         self.plan_x = np.array([0.0,0.0,0.0,self.vx,self.vw])
-        pass
+    
     def planThreadFunc(self):
         print("running planning thread!!")
         rr = rospy.Rate(10)
@@ -133,20 +139,19 @@ class LocalPlanner:
         print("exit planning thread!!")
         self.publishVel(True)
         self.planner_thread = None
-        pass
+    
     def planOnce(self):
         self.updateGlobalPose()
         # Update plan_x [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
         self.plan_x = [0.0,0.0,0.0,self.vx,self.vw]
         # Update obstacle
         self.updateObstacle()
-        u, _ = self.dwa.plan(self.plan_x,self.plan_goal,self.plan_ob)
+        u, _ = self.dwa.plan(self.plan_x,self.plan_goal)
         alpha = 0.5
         self.vx = u[0]*alpha+self.vx*(1-alpha)
         self.vw = u[1]*alpha+self.vw*(1-alpha)
         # print("mdbg; ",u)
         self.publishVel()
-        pass
 
     def publishVel(self,zero = False):
         if zero:
@@ -161,7 +166,6 @@ def main():
     rospy.init_node('path_Planning')
     lp = LocalPlanner()
     rospy.spin()
-    pass
 
 if __name__ == '__main__':
     main()

@@ -28,7 +28,7 @@ class Config:
         self.v_reso = self.max_accel*self.dt/10.0  # [m/s]
         self.yawrate_reso = self.max_dyawrate*self.dt/10.0  # [rad/s]
         self.predict_time = 2  # [s]
-        self.to_goal_cost_gain = 1.0
+        self.to_goal_cost_gain = 1.5
         self.speed_cost_gain = 0.1
         self.obstacle_cost_gain = 1.0
         self.robot_type = RobotType.rectangle
@@ -57,7 +57,7 @@ class DWA:
         self.config = config
         pass
 
-    def plan(self, x, goal, ob: np.ndarray):
+    def plan(self, x, goal):
         """
         Dynamic Window Approach control
         """
@@ -74,22 +74,17 @@ class DWA:
         min_cost = float('inf')
         best_u = (v_max, w_max)
 
-        print(f"v_min: {v_min}, v_max: {v_max}, w_min: {w_min}, w_max: {w_max}, v_reso: {self.config.v_reso}, w_reso: {self.config.yawrate_reso}")
-
         for v in np.arange(v_min, v_max, self.config.v_reso):
             for w in np.arange(w_min, w_max, self.config.yawrate_reso):
-                print('.')
                 new_point_x, new_point_y, new_point_yaw = self.get_next_point(
                     point_x, point_y, point_yaw, v, w)
                 cost = self.get_cost(
-                    v, w, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y, ob)
+                    v, w, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y)
                 if cost < min_cost:
                     min_cost = cost
                     best_u = (v, w)
         trajectory = None
         best_u = np.array(list(best_u))
-
-        print('return')
 
         return best_u, trajectory
 
@@ -111,7 +106,7 @@ class DWA:
         r = v / w
         syaw = math.sin(point_yaw)
         cyaw = math.cos(point_yaw)
-        new_point_yaw = point_yaw + w * self.config.dt
+        new_point_yaw = point_yaw + w * self.config.predict_time
 
         # calculate new position
         new_point_x = point_x - r * syaw + r * math.sin(new_point_yaw)
@@ -119,41 +114,20 @@ class DWA:
 
         return new_point_x, new_point_y, new_point_yaw
 
-    def get_cost(self, v, w, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y, ob: np.ndarray):
-        # cost1 = self.config.to_goal_cost_gain * \
-        #     math.atan2(goal_y - new_point_y, goal_x -
-        #                new_point_x) - new_point_yaw
+    def get_cost(self, v, w, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y):
         cost1_angle = math.atan2(goal_y - new_point_y,
                                  goal_x - new_point_x) - new_point_yaw
-
-        print(f"cost1_angle 1: {cost1_angle} new_point_yaw: {new_point_yaw} goal_x: {goal_x} goal_y: {goal_y} new_point_x: {new_point_x} new_point_y: {new_point_y}")
 
         cost1_angle = abs(math.atan2(
             math.sin(cost1_angle), math.cos(cost1_angle)))
 
-        print(f"cost1_angle 2: {cost1_angle}")
-
-        cost1 = self.config.to_goal_cost_gain * cost1_angle
-
-        if ob is None:
-            cost2 = 0.0
+        if cost1_angle <= math.pi / 2.0:
+            cost1 = self.config.to_goal_cost_gain * cost1_angle
+            cost3 = self.config.speed_cost_gain * (self.config.max_speed - v)
         else:
-            dist = float('inf')
-            for o in ob:
-                cur_dist = math.hypot(o[0] - new_point_x, o[1] - new_point_y)
-                if cur_dist < dist:
-                    cur_dist = dist
-            dist = cur_dist - self.config.robot_radius
+            cost1 = self.config.to_goal_cost_gain * (math.pi - cost1_angle)
+            cost3 = self.config.speed_cost_gain * (self.config.min_speed - v)
 
-            assert dist != float('inf')
+        cost2 = 0.0
 
-            cost2 = self.config.obstacle_cost_gain / dist
-
-        cost3 = self.config.speed_cost_gain * (self.config.max_speed - abs(v))
-
-        print(
-            f"cost1: {cost1} cost2: {cost2} cost3: {cost3}  cost: {abs(cost1) + abs(cost2) + abs(cost3)}")
-
-        return abs(cost1) / (2.0 * math.pi) + \
-            abs(cost2) * (20.0 * math.sqrt(2.0)) + \
-            abs(cost3) / self.config.max_speed
+        return abs(cost1) + abs(cost2) + abs(cost3)

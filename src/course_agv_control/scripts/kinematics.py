@@ -22,10 +22,10 @@ class Kinematics:
 
     def kinematics(self,vx,vw):
         radius = 0.08
-        l = 0.1
+        l = 0.113
         w1 = vx / radius - l * vw / radius
         w2 = vx / radius + l * vw / radius
-        return -w2, -w1
+        return w1, w2
 
     def publish(self):
         self.vel_left_pub.publish(self.left_wheel_vel)
