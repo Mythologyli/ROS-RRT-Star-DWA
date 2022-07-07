@@ -78,8 +78,6 @@ class LocalPlanner:
         self.midpose_pub.publish(goal)
         lgoal = self.tf.transformPose(ROBOT_TF_NAME, goal)
         self.plan_goal = np.array([lgoal.pose.position.x,lgoal.pose.position.y])
-        print("current",self.x,self.y)
-        print("path",self.path.poses[-1].pose.position.x,self.path.poses[-1].pose.position.y)
         self.goal_dis = math.hypot(self.x-self.path.poses[-1].pose.position.x,self.y-self.path.poses[-1].pose.position.y)
 
     def laserCallback(self,msg):

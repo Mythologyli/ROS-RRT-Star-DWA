@@ -79,7 +79,7 @@ class DWA:
                 new_point_x, new_point_y, new_point_yaw = self.get_next_point(
                     point_x, point_y, point_yaw, v, w)
                 cost = self.get_cost(
-                    v, w, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y)
+                    v, w, point_x, point_y, point_yaw, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y)
                 if cost < min_cost:
                     min_cost = cost
                     best_u = (v, w)
@@ -114,14 +114,30 @@ class DWA:
 
         return new_point_x, new_point_y, new_point_yaw
 
-    def get_cost(self, v, w, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y):
+    def get_cost(self,
+                 v,
+                 w,
+                 point_x,
+                 point_y,
+                 point_yaw,
+                 new_point_x,
+                 new_point_y,
+                 new_point_yaw,
+                 goal_x,
+                 goal_y):
+        # Judge if we should change the direction of head
+        current_angle_delta = math.atan2(
+            goal_y - point_y, goal_x - point_x) - point_yaw
+        current_angle_delta = abs(math.atan2(
+            math.sin(current_angle_delta), math.cos(current_angle_delta)))
+
         cost1_angle = math.atan2(goal_y - new_point_y,
                                  goal_x - new_point_x) - new_point_yaw
 
         cost1_angle = abs(math.atan2(
             math.sin(cost1_angle), math.cos(cost1_angle)))
 
-        if cost1_angle <= math.pi / 2.0:
+        if current_angle_delta <= math.pi / 2.0:
             cost1 = self.config.to_goal_cost_gain * cost1_angle
             cost3 = self.config.speed_cost_gain * (self.config.max_speed - v)
         else:
