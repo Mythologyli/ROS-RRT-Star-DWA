@@ -109,8 +109,6 @@ class RRT:
 
         success = False
         for i in range(self.max_iteration_times):
-            print('.')
-
             random_node = self.sample()
             nearest_node = self.nearest(random_node)
 

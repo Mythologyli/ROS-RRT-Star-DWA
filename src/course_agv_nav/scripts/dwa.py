@@ -28,8 +28,8 @@ class Config:
         self.v_reso = self.max_accel*self.dt/10.0  # [m/s]
         self.yawrate_reso = self.max_dyawrate*self.dt/10.0  # [rad/s]
         self.predict_time = 2  # [s]
-        self.to_goal_cost_gain = 1.5
-        self.speed_cost_gain = 0.1
+        self.to_goal_cost_gain = 1.0
+        self.speed_cost_gain = 0.2
         self.obstacle_cost_gain = 1.0
         self.robot_type = RobotType.rectangle
 
@@ -55,6 +55,7 @@ class Config:
 class DWA:
     def __init__(self, config: Config):
         self.config = config
+        self.front_as_head = True
         pass
 
     def plan(self, x, goal):
@@ -74,12 +75,14 @@ class DWA:
         min_cost = float('inf')
         best_u = (v_max, w_max)
 
+        self.judge_if_front_as_head(point_x, point_y, point_yaw, goal_x, goal_y)
+
         for v in np.arange(v_min, v_max, self.config.v_reso):
             for w in np.arange(w_min, w_max, self.config.yawrate_reso):
                 new_point_x, new_point_y, new_point_yaw = self.get_next_point(
                     point_x, point_y, point_yaw, v, w)
                 cost = self.get_cost(
-                    v, w, point_x, point_y, point_yaw, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y)
+                    v, w, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y)
                 if cost < min_cost:
                     min_cost = cost
                     best_u = (v, w)
@@ -114,30 +117,25 @@ class DWA:
 
         return new_point_x, new_point_y, new_point_yaw
 
-    def get_cost(self,
-                 v,
-                 w,
-                 point_x,
-                 point_y,
-                 point_yaw,
-                 new_point_x,
-                 new_point_y,
-                 new_point_yaw,
-                 goal_x,
-                 goal_y):
-        # Judge if we should change the direction of head
+    def judge_if_front_as_head(self, point_x, point_y, point_yaw, goal_x, goal_y):
         current_angle_delta = math.atan2(
             goal_y - point_y, goal_x - point_x) - point_yaw
         current_angle_delta = abs(math.atan2(
             math.sin(current_angle_delta), math.cos(current_angle_delta)))
 
+        if current_angle_delta <= math.pi / 2.0:
+            self.front_as_head = True
+        else:
+            self.front_as_head = False
+
+    def get_cost(self, v, w, new_point_x, new_point_y, new_point_yaw, goal_x, goal_y):
         cost1_angle = math.atan2(goal_y - new_point_y,
                                  goal_x - new_point_x) - new_point_yaw
 
         cost1_angle = abs(math.atan2(
             math.sin(cost1_angle), math.cos(cost1_angle)))
 
-        if current_angle_delta <= math.pi / 2.0:
+        if self.front_as_head:
             cost1 = self.config.to_goal_cost_gain * cost1_angle
             cost3 = self.config.speed_cost_gain * (self.config.max_speed - v)
         else:

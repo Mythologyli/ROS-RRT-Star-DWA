@@ -124,8 +124,6 @@ class RRTStarSimplified:
 
         success = False
         for i in range(self.max_iteration_times):
-            # print('.')
-
             random_node = self.sample()
             nearest_node = self.nearest(random_node)
 
@@ -194,3 +192,43 @@ class RRTStarSimplified:
             return ([node.x for node in simplified_path], [node.y for node in simplified_path])
         else:
             return ([], [])
+
+    def test(self) -> Tuple[List[float], List[float]]:
+                
+        plan_sx = 9.303865722269596e-05
+        plan_sy = -0.00016220068199821012
+        plan_gx = -0.9932613372802734
+        plan_gy = -2.0161428451538086
+
+        random.seed(0)
+
+        import time
+
+        time_list = []
+        path_distance_list = []
+        number_list = []
+
+        for i in range(10):
+            # Calc time of self.plan()
+            start_time = time.time()
+            path = self.plan(plan_sx, plan_sy, plan_gx, plan_gy)
+            end_time = time.time()
+            time_list.append(end_time - start_time)
+
+            # Calc total distance of path
+            total_distance = 0
+            for i in range(len(path[0]) - 1):
+                total_distance += RRTStarSimplified.distance(Node(path[0][i], path[1][i]), Node(path[0][i + 1], path[1][i + 1]))
+
+            path_distance_list.append(total_distance)
+            number_list.append(len(path[0]))
+        
+        # Average
+        average_time = sum(time_list) / len(time_list)
+        average_path_distance = sum(path_distance_list) / len(path_distance_list)
+        average_number = sum(number_list) / len(number_list)
+
+        print("Test plan over!")
+        print(f"Time: {average_time}")
+        print(f"Total distance: {average_path_distance}")
+        print(f"Path number: {average_number}")
